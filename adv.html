@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>The Lost Treasure - Adventure Game</title>
+  <style>
+    /* Reset en fonts */
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-image: url('https://images.unsplash.com/photo-1581291518857-4e27b48ff24e');
+      background-size: cover;
+      background-position: center;
+      color: #fff;
+    }
+
+    .overlay {
+      background-color: rgba(0,0,0,0.8);
+      min-height: 100vh;
+      padding: 60px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .container {
+      background: rgba(10,10,10,0.9);
+      padding: 40px;
+      border-radius: 20px;
+      max-width: 750px;
+      width: 100%;
+      box-shadow: 0 0 20px #000;
+      text-align: center;
+      display: none;
+      flex-direction: column;
+    }
+
+    h1 {
+      color: #ffc107;
+      font-size: 3em;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px #000;
+    }
+
+    #story {
+      font-size: 1.2em;
+      margin-bottom: 30px;
+      min-height: 100px;
+      line-height: 1.6;
+    }
+
+    .choice-btn {
+      background: #222;
+      border: 2px solid #ffc107;
+      color: #ffc107;
+      padding: 15px 25px;
+      margin: 10px;
+      border-radius: 12px;
+      font-size: 1.1em;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s ease;
+      display: inline-block;
+      box-shadow: 2px 2px 8px #000;
+    }
+
+    .choice-btn:hover {
+      background-color: #ffc107;
+      color: #000;
+      transform: scale(1.05);
+    }
+
+    #score {
+      font-size: 1em;
+      margin-top: 25px;
+      color: #00e6ac;
+    }
+
+    #loading-screen {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #000c1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #ffc107;
+      font-size: 2em;
+      z-index: 9999;
+    }
+
+    .spinner {
+      margin-top: 30px;
+      border: 8px solid #222;
+      border-top: 8px solid #ffc107;
+      border-radius: 50%;
+      width: 80px;
+      height: 80px;
+      animation: spin 1.5s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {transform: rotate(0deg);}
+      100% {transform: rotate(360deg);}
+    }
+
+    #start-btn {
+      margin-top: 40px;
+      padding: 15px 40px;
+      font-size: 1.5em;
+      border: none;
+      border-radius: 15px;
+      background-color: #ffc107;
+      color: #000;
+      cursor: pointer;
+      box-shadow: 2px 2px 10px #000;
+      transition: background-color 0.3s ease;
+      display: none;
+    }
+
+    #start-btn:hover {
+      background-color: #ffd633;
+    }
+
+    #game-message {
+      display:none;
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #222;
+      color: #fff;
+      padding: 20px 40px;
+      border-radius: 10px;
+      font-size: 1.5em;
+      z-index: 10000;
+      box-shadow: 0 0 10px #000;
+      font-weight: bold;
+      text-shadow: 1px 1px #000;
+    }
+
+    @media screen and (max-width: 600px) {
+      .choice-btn {
+        width: 100%;
+        margin: 10px 0;
+      }
+      #start-btn {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading scherm -->
+  <div id="loading-screen">
+    Loading the adventure...
+    <div class="spinner"></div>
+    <button id="start-btn" onclick="startGame()">START THE GAME</button>
+  </div>
+
+  <!-- Confetti canvas -->
+  <canvas id="confetti" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;"></canvas>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Meldingsvak -->
+  <div id="game-message"></div>
+
+  <!-- Game content -->
+  <div class="overlay">
+    <div class="container" id="game-container">
+      <h1>🏝️ The Lost Treasure 🗺️</h1>
+      <div id="story">You find yourself standing at the edge of the jungle...</div>
+      <div id="choices">
+        <button class="choice-btn" onclick="choose('thorns')">🌿 Take the thorny path</button>
+        <button class="choice-btn" onclick="choose('clear')">🛤️ Take the clear path</button>
+      </div>
+      <div id="score">Score: 0</div>
+    </div>
+  </div>
+
+  <!-- Sounds -->
+  <audio id="clickSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_eead8a0017.mp3" preload="auto"></audio>
+  <audio id="winSound" src="https://cdn.pixabay.com/download/audio/2022/10/30/audio_263b476e93.mp3" preload="auto"></audio>
+  <audio id="loseSound" src="https://cdn.pixabay.com/download/audio/2022/03/16/audio_2be7faadaf.mp3" preload="auto"></audio>
+
+  <script>
+    let score = 0;
+
+    window.onload = () => {
+      setTimeout(() => {
+        document.querySelector('.spinner').style.display = 'none';
+        document.getElementById('start-btn').style.display = 'inline-block';
+      }, 5000);
+    };
+
+    function startGame() {
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('game-container').style.display = 'flex';
+    }
+
+    function updateScore(points) {
+      score += points;
+      document.getElementById('score').innerText = "Score: " + score;
+    }
+
+    function playSound(id) {
+      document.getElementById(id).play();
+    }
+
+    function showMessage(text, type) {
+      const msgBox = document.getElementById("game-message");
+      msgBox.innerText = text;
+      msgBox.style.backgroundColor = type === 'win' ? '#28a745' : '#dc3545';
+      msgBox.style.display = 'block';
+
+      if (type === 'win') {
+        confetti({
+          particleCount: 150,
+          spread: 100,
+          origin: { y: 0.6 }
+        });
+      }
+
+      setTimeout(() => {
+        msgBox.style.display = 'none';
+      }, 4000);
+    }
+
+    function choose(path) {
+      const story = document.getElementById('story');
+      const choices = document.getElementById('choices');
+
+      playSound('clickSound');
+      story.innerText = "Thinking...";
+      choices.innerHTML = '';
+
+      setTimeout(() => {
+        if (path === 'thorns') {
+          story.innerText = "You push through the thicket...";
+          choices.innerHTML = `
+            <button class="choice-btn" onclick="choose('enterCave')">🏚️ Enter the cave</button>
+            <button class="choice-btn" onclick="choose('keepWalking')">🚶‍♂️ Keep walking</button>
+          `;
+        } else if (path === 'clear') {
+          story.innerText = "You follow the path and find a river...";
+          choices.innerHTML = `
+            <button class="choice-btn" onclick="choose('crossRiver')">🌊 Cross the river</button>
+            <button class="choice-btn" onclick="choose('findRoute')">🧭 Find another route</button>
+          `;
+        } else if (path === 'enterCave') {
+          story.innerText = "Inside the cave, you find treasure! 🪙🏆";
+          playSound('winSound');
+          updateScore(50);
+          showMessage("🎉 You Win! Treasure is yours!", 'win');
+          choices.innerHTML = `<button class="choice-btn" onclick="location.reload()">🔁 Play again</button>`;
+        } else if (path === 'keepWalking') {
+          story.innerText = "You get lost in the jungle. 🌴😢";
+          playSound('loseSound');
+          updateScore(-10);
+          showMessage("😢 You got lost in the jungle!", 'lose');
+          choices.innerHTML = `<button class="choice-btn" onclick="location.reload()">🔁 Try again</button>`;
+        } else if (path === 'crossRiver') {
+          story.innerText = "Swept away by the river. 🌊😞";
+          playSound('loseSound');
+          updateScore(-10);
+          showMessage("🌊 You lost your gear in the river!", 'lose');
+          choices.innerHTML = `<button class="choice-btn" onclick="location.reload()">🔁 Try again</button>`;
+        } else if (path === 'findRoute') {
+          story.innerText = "You discover a hidden temple full of treasure! 🏯💰";
+          playSound('winSound');
+          updateScore(50);
+          showMessage("🏆 You found the hidden temple!", 'win');
+          choices.innerHTML = `<button class="choice-btn" onclick="location.reload()">🔁 Play again</button>`;
+        }
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
