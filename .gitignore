@@ -1,1 +1,13 @@
 
+# Systeem- en editorbestanden
+.DS_Store
+Thumbs.db
+.vscode/
+*.log
+
+# Node.js projecten (indien van toepassing)
+node_modules/
+
+# Back-ups of tijdelijke bestanden
+*.bak
+*.tmp
